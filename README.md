@@ -1,5 +1,5 @@
 MQ-CEST Fit
-
+------------
 This code is designed for fitting multi-quantum chemical exchange saturation
 transfer data (MQ-CEST). It is currently designed for the characterisation of
 restricted rotation in the guanidinium groups of arginine residues and can give
@@ -37,18 +37,23 @@ Main Input Script
 ------------
 This is the main input file required to initiate the fits. It contains the
 following parameters with input arguments entered followed by a space:
+
 infol         : this is a folder that contains all the residue specific input
                 files (see below for details of these)
+
 outfol        : this is the directory that will be created for all results from
                 the fits. Within this directory one directory will be created
                 for the results from each residue.
+
 resiList      : this is a list of all residues to be fit. For each residue there
                 must be a corresponding residue specific input file (with the
                 residue name given here and filename extension '.in') in 'infol'
+
 fitParams     : this is a list of non-relaxation parameters to include in the
                 fit. Typically this will be kex, deltaO and w0 but it is possible
                 to fix/fit other parameters as desired. Any parameters not listed
                 here will be fixed in the optimization process.
+
 fitParams_rel : A list of relaxation parameters to include in the fits. options
                 are r_Cz (longitudinal carbon relaxation), r_Nz (longitudinal
                 nitrogen relaxation) and r_Nxy (transverse nitrogen relaxation).
@@ -56,21 +61,33 @@ fitParams_rel : A list of relaxation parameters to include in the fits. options
                 separate rate for each field is created.
 
 Default System Parameters
+
 Here we setup some default system parameters. These will be overwritten on a per
 residue basis where a value is provided in the residue specific input files:
+
 r_Cz    : carbon longitudinal relaxation rate
+
 r_Nz    : nitrogen longitudinal relaxation rate
+
 r_Nxy   : nitrogen transverse relaxation rate
+
 J       : Cz-Nh coupling constant
+
 kex     : rotation rate about Cz-Ne bond
+
 pb      : population of state B (should fix to 0.5 for guanidinium rotation)
+
 deltaO  : difference in Nh chemical shifts
 
 Default Experimental Parameters
+
 These parameters cannot be fit. The default parameters here can however be
 overwritten by values provided in the residue specific input files:
+
 cest_time : length of CEST saturation pulse in seconds
+
 inhom_num : number of B1 values to use to characterise B1 inhomogeneity
+
 phase     : phase of CEST pulse (0.0 = x; 90.0 = y; 180.0 = -x; 240.0 = -y)
 
 Please see example.in as a reference.
