@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from red_run_fit import fitGroup
+from red_run_mqfit import fitGroup
 import sys, os
 
 def getStarted(infile):
