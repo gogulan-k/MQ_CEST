@@ -1,0 +1,23 @@
+infol example_infiles
+outfol outfiles
+
+# residue List
+resiList R52 R95 R96 R154
+
+# set which parameters are to be fit
+fitparams kex w0 deltaO
+fitparams_rel r_Nz
+
+# setup default parameters
+r_Cz 0.5
+r_Nz 1.65
+r_Nxy 16.0
+J 22.0
+kex 50.0
+pb 0.5
+deltaO 1.0
+
+# exp params
+cest_time 0.25
+inhom_num 10
+phase 0.0

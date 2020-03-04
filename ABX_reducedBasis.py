@@ -621,7 +621,7 @@ def propagate(init, L, time):
     # propagate the state either with direct matrix exponential or using
     # Taylor expansion method
     return np.dot([taylorProp(L[i,:,:], time) for i in range(L.shape[0])],  init)
-    # return np.dot([linalg.expm(-L[i,:,:]*time) for i in range(L.shape[0])],init)
+    #return np.dot([linalg.expm(-L[i,:,:]*time) for i in range(L.shape[0])],init)
 
 
 def propagate_cpd(state_init,cest1,cest2,cpdField,time):
@@ -672,10 +672,6 @@ def getB1_vals(B1_av, B1_std, B1_num):
 
 prod, prodList = buildProdOperators_IRS(ax,a1,a2,a3,mats)
 rowList,rowLen = getRowList(prodList)
-print(rowList)
-print([prodList[i] for i in rowList])
-print(len(rowList))
-sys.exit()
 #print rowList,rowLen
 
 rel = rel_matrix_red(prodList,rowList,rowLen)

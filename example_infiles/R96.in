@@ -1,0 +1,18 @@
+# example input file
+resi R96N-C
+DataFiles example_data/293K_600_10/R96N-C.cesterr example_data/293K_600_19/R96N-C.cesterr example_data/293K_700_10/R96N-C.cesterr example_data/293K_800_10/R96N-C.cesterr example_data/293K_950_10/R96N-C.cesterr
+J 21.31
+pb 0.5
+kex 172.55292
+w0 71.2967
+deltaO 2.008
+cest_time 0.25
+phase 0.0
+inhom 10
+field 60.794 60.794 70.972 81.098 96.236
+v1 10.9 18.9 10.6 10.7 11.2
+v1_std 1.09 1.89 1.06 0.749 0.9
+carrier 84.0 84.0 84.0 84.0 84.0
+r_Cz 0.23 0.23 0.23 0.23 0.23
+r_Nz 1.3893 1.3893 1.0389 0.8811 0.85
+r_Nxy 16.5 16.5 16.5 16.5 16.5

@@ -1,0 +1,18 @@
+# example input file
+resi R154N-C
+DataFiles example_data/293K_600_10/R154N-C.cesterr example_data/293K_600_19/R154N-C.cesterr example_data/293K_700_10/R154N-C.cesterr example_data/293K_800_10/R154N-C.cesterr example_data/293K_950_10/R154N-C.cesterr
+J 21.81
+pb 0.5
+kex 200.0
+w0 72.08
+deltaO 1.0
+cest_time 0.25
+phase 0.0
+inhom 10
+field 60.794 60.794 70.972 81.098 96.236
+v1 10.9 18.9 10.6 10.7 11.2
+v1_std 1.09 1.89 1.06 0.749 0.9
+carrier 84.0 84.0 84.0 84.0 84.0
+r_Nz 1.5899 1.5899 1.4139 1.2256 1.22
+r_Cz 0.8 0.8 0.8 0.8 0.8
+r_Nxy 8.0 8.0 8.0 8.0 8.0

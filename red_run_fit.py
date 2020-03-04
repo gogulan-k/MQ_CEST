@@ -1,12 +1,10 @@
 from ABX_reducedBasis import *
-import numpy as np
-import time
 from lmfit import minimize, Minimizer, Parameters, Parameter, report_fit, fit_report
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import os,sys
 
 dRateMat = {'r_Cz':0.5, 'r_Nz':1.65, 'r_Nxy':16.0}
-
 dGlobParams = {'J':20.0, 'kex':50.0, 'pb':0.5, 'deltaO':1.} # these do not change with field
 # note that in this case w0 is the DQ chemical shift in ppm and deltaO is in pppm
 # these can be fitting parameters or not we state what parameters we want to be
@@ -19,12 +17,15 @@ dExpParams = {'cest_time':0.25,'inhom_num':10,'phase':0.0}
 # inhom_num = 5 # number of points to account for inhomogeneity
 
 class fitGroup(object):
-    def __init__(self, infiles, inputFile, fitParams=dFitParams, fitParams_rel = dFitParams_rel):
+    def __init__(self, inputFile, outfile, fitParams=dFitParams, fitParams_rel = dFitParams_rel,
+            dExpParams = dExpParams, dGlobParams = dGlobParams, dRateMat = dRateMat):
     # fields is list of 15N carrier frequencies; infiles are corresponding CEST
     # v1 are the B1 field strength in Hz we can have multiple B1 field strengths
     # for each static field but we should repeat fields when this is the case.
     # v1std is the corresponding standard deviation in v1 (Gaussian distribution)
-
+        self.dGlobParams = dGlobParams
+        self.dExpParams = dExpParams
+        self.dRateMat = dRateMat
         self.readInput(inputFile)
         self.start = time.time()
         self.offsets = {} # dictionary of offsets: 1 key per field/v1
@@ -34,8 +35,14 @@ class fitGroup(object):
         self.v1 = {}
         self.v1_probs = {}
 
+        self.pathname = outfile+'/'+self.name
+        if os.path.exists(self.pathname)==0:
+            os.mkdir(self.pathname)
+        else:
+            print('folder {} already exists. Contents may be overwritten'.format(self.pathname))
+
         for i,lb in enumerate(self.label):
-            self.offsets[lb],self.intens[lb],self.intens_err[lb]=self.readInfile(infiles[i],self.minerr[lb])
+            self.offsets[lb],self.intens[lb],self.intens_err[lb]=self.readInfile(self.infiles[i],self.minerr[lb])
             # populate our offset and intensity dictionaries
 
         self.fitParams = fitParams
@@ -85,8 +92,10 @@ class fitGroup(object):
                 if not line.startswith('#'):
                     if len(line)>0:
                         line = line.split()
-                        if line[0]=='resi':
-                            allDat[line[0]]=line[1]
+                        if str.lower(line[0])=='resi':
+                            allDat['resi']=line[1]
+                        elif str.lower(line[0])=='datafiles':
+                            allDat['datafiles']=list(line[1:])
                         else:
                             allDat[line[0]]=list(map(float,line[1:]))
 
@@ -95,6 +104,13 @@ class fitGroup(object):
             print('loading in parameters for ', self.name)
         except:
             print('need a residue name aborting now...')
+            sys.exit()
+
+
+        try:
+            self.infiles = allDat['datafiles']
+        except:
+            print('did not find any cest data files aborting now...')
             sys.exit()
 
         try:
@@ -121,7 +137,8 @@ class fitGroup(object):
 
         self.label = list(zip(self.fields,self.v1_list))
 
-        assert len(self.fields)==len(self.v1_list)==len(self.v1_std_list), "Require number of spectrometer fields, B1 fields and B1 field SD to be equal"
+        assert len(self.infiles)==len(self.fields)==len(self.v1_list)==len(self.v1_std_list), \
+                "Require number of data files, spectrometer fields, B1 fields and B1 field SD to be equal, aborting now..."
         self.num = len(self.fields)
 
         try:
@@ -159,52 +176,52 @@ class fitGroup(object):
             self.glob['J'] = allDat['J'][0]
             print('J (Hz) = ', self.glob['J'])
         except:
-            print('did not find J coupling constant in input file using default value of ', dGlobParams['J'])
-            self.glob['J'] = dGlobParams['J']
+            print('did not find J coupling constant in input file using default value of ', self.dGlobParams['J'])
+            self.glob['J'] = self.dGlobParams['J']
 
         try:
             self.glob['kex'] = allDat['kex'][0]
             print('kex initial (s^-1) = ', self.glob['kex'])
         except:
-            print('did not find kex value in input file using default value of ', dGlobParams['kex'])
-            self.glob['kex'] = dGlobParams['kex']
+            print('did not find kex value in input file using default value of ', self.dGlobParams['kex'])
+            self.glob['kex'] = self.dGlobParams['kex']
 
         try:
             self.glob['pb'] = allDat['pb'][0]
             print('pb = ', self.glob['pb'])
         except:
-            print('did not find pb value in input file using default value of ', dGlobParams['pb'])
-            self.glob['pb'] = dGlobParams['pb']
+            print('did not find pb value in input file using default value of ', self.dGlobParams['pb'])
+            self.glob['pb'] = self.dGlobParams['pb']
 
         try:
             self.glob['deltaO'] = allDat['deltaO'][0]
             print('deltaO initial = ', self.glob['deltaO'])
         except:
-            print('did not find deltaO value in input file using default value of ', dGlobParams['deltaO'])
-            self.glob['deltaO'] = dGlobParams['deltaO']
+            print('did not find deltaO value in input file using default value of ', self.dGlobParams['deltaO'])
+            self.glob['deltaO'] = self.dGlobParams['deltaO']
 
         try:
             self.cest_time = allDat['cest_time'][0]
             print('cest saturation time (s) = ', self.cest_time)
         except:
-            print('did not find cest_time value in input file using default value of ', dExpParams['cest_time'])
-            self.cest_time = dGlobParams['cest_time']
+            print('did not find cest_time value in input file using default value of ', self.dExpParams['cest_time'])
+            self.cest_time = self.dExpParams['cest_time']
 
         try:
             self.phase = allDat['phase'][0]
             print('cest pulse phase (in degrees) ', self.phase)
         except:
-            print('did not find cest pulse phase in input file using default value of ', dExpParams['phase'])
-            self.phase = dExpParams['phase']
+            print('did not find cest pulse phase in input file using default value of ', self.dExpParams['phase'])
+            self.phase = self.dExpParams['phase']
 
         try:
             self.inhom_num = int(allDat['inhom'][0])
             print('number of B1 inhomogeneity points to use in calculation ', self.inhom_num)
         except:
-            print('did not find number of inhomogeneity B1 points to trial in calculation using default value of ', dExpParams['inhom_num'])
-            self.inhom_num = dExpParams['inhom_num']
+            print('did not find number of inhomogeneity B1 points to trial in calculation using default value of ', self.dExpParams['inhom_num'])
+            self.inhom_num = self.dExpParams['inhom_num']
 
-        for key in dRateMat:
+        for key in self.dRateMat:
             for i,field in enumerate(self.fields):
                 rfield = str(field).split('.')[0]
                 try:
@@ -212,7 +229,7 @@ class fitGroup(object):
                     self.rel[key+'_'+rfield] = allDat[key][i]
                 except:
                     # self.rel[key+'_'+str(lb)+'_'+str(self.v1_list[i])] = dRateMat[key]
-                    self.rel[key+'_'+rfield] = dRateMat[key]
+                    self.rel[key+'_'+rfield] = self.dRateMat[key]
 
 
     def doFit(self):
@@ -242,7 +259,7 @@ class fitGroup(object):
 
         final_rep = fit_report(result)
         print(final_rep)
-        with open(self.name+'_fitReport.out','w') as outy:
+        with open(self.pathname+'/'+self.name+'_fitReport.out','w') as outy:
                 outy.write('%s' %(final_rep))
 
         for lb in self.label:
@@ -255,10 +272,10 @@ class fitGroup(object):
             plt.xlim([np.max(ppm),np.min(ppm)])
             plt.xlabel(r'$^{15}$N (ppm)')
             plt.ylabel(r'I/I$_0$')
-            plt.savefig(self.name+'_'+str(rfield)+'MHz_'+rB1+'Hz.eps')
+            plt.savefig(self.pathname+'/'+self.name+'_'+str(rfield)+'MHz_'+rB1+'Hz.eps')
             plt.clf()
 
-            with open(self.name+'_'+str(rfield)+'MHz_'+rB1+'Hz.out','w') as outy:
+            with open(self.pathname+'/'+self.name+'_'+str(rfield)+'MHz_'+rB1+'Hz.out','w') as outy:
                 outy.write('# ppm\tExp\tFit\n')
                 for i,val in enumerate(ppm):
                     outy.write('%f\t%f\t%f\n' %(val,self.intens[lb][i],final_res[i]))
@@ -338,41 +355,7 @@ class fitGroup(object):
             Ltemp = L_addElements_simp_red(relaxL,rowLen, deltaR=deltaN1-offset, deltaS=deltaN2-offset, deltaR_ex = deltaN2-offset, deltaS_ex = deltaN1 - offset)
             CESTp = L_add_rf_red(Ltemp, rowLen, RS_x_rf, RS_y_rf, v1, phase = 0.0)
             state_curr = propagate_fast(state,CESTp,val,pow)
-            #state_curr = propagate(state, CESTp, cest_time)
+            #state_curr = propagate(state, CESTp, self.cest_time)
             cest_fin[k] = np.sum(np.real(state_curr[:,rowLen] + state_curr[:,2*rowLen])*v1_probs)
 
         return cest_fin
-
-
-#resiList = ['R8','R14','R52','R76','R80','R95','R96','R119','R125','R137','R148','R154']
-#resiList = ['R52','R95']
-#resiList = ['R1']
-
-#fol1 = 'T4Lysozyme/data/293K_600_10/'
-#fol2 = 'T4Lysozyme/data/293K_600_19/'
-#fol3 = 'T4Lysozyme/data/293K_700_10/'
-#fol4 = 'T4Lysozyme/data/293K_800_10/'
-#fol5 = 'T4Lysozyme/data/293K_950_10/'
-
-#infol = 'T4Lysozyme/data/Infiles/'
-
-#fol1 = 'Arginine/data/258K/'
-
-#resiList = ['R28','R42','R93','R127','R148','R176']
-#fol1 = 'umpk/data/298K_700_10/'
-#fol2 = 'umpk/data/298K_700_15/'
-#fol3 = 'umpk/data/298K_700_20/'
-#fol4 = 'umpk/data/298K_800_10/'
-#infol = 'umpk/data/Infiles/'
-
-
-resiList = ['R50','R6','R65']
-fol1 = 'C3/data/600_hdet_288K/'
-fol2 = 'C3/data/700_hdet_288K/'
-infol = 'C3/infiles/288K/'
-
-
-for resi in resiList:
-    fitGroup([fol1+resi+'N-H.cest',fol2+resi+'N-H.cest'],infol+resi+'.in')
-    #fitGroup([fol1+resi+'N-C.cesterr',fol2+resi+'N-C.cesterr',fol3+resi+'N-C.cesterr',fol4+resi+'N-C.cesterr'],infol+resi+'.in')
-    #fitGroup([fol1+resi+'N-C.cest',fol2+resi+'N-C.cest',fol3+resi+'N-C.cest',fol4+resi+'N-C.cest',fol5+resi+'N-C.cest'],infol+resi+'.in')

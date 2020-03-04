@@ -1,0 +1,17 @@
+# example input file
+resi R52N-C
+DataFiles example_data/293K_600_10/R52N-C.cesterr example_data/293K_600_19/R52N-C.cesterr example_data/293K_700_10/R52N-C.cesterr example_data/293K_800_10/R52N-C.cesterr
+J 22.0
+pb 0.5
+kex 30.0
+w0 71.883
+deltaO 1.309
+cest_time 0.25
+phase 0.0
+inhom 10
+field 60.794 60.794 70.972 81.098
+v1 10.9 18.9 10.6 10.7
+v1_std 1.09 1.89 1.06 0.749
+carrier 84.0 84.0 84.0 84.0
+r_Cz 0.23 0.23 0.23 0.23
+r_Nxy 26.0 26.0 26.0 26.0
