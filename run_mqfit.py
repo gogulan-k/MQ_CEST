@@ -231,7 +231,7 @@ class fitGroup(object):
                     self.rel[key+'_'+rfield] = self.dRateMat[key]
 
 
-    def doFit(self):
+    def doFit(self, hires=False):
 
         params_all = Parameters()
         meth = 'leastsq'
@@ -267,7 +267,12 @@ class fitGroup(object):
             plt.plot(ppm, self.intens[lb], 'o')
             rfield = str(lb[0]).split('.')[0]
             rB1 = str(lb[1]).split('.')[0]
-            plt.plot(ppm, final_res, '-')
+            if hires:
+                offset_hi = np.linspace(np.min(self.offsets[lb]), np.max(self.offsets[lb]), 1000)
+                ppm_hi = offset_hi/lb[0]+self.carrier[lb]
+                plt.plot(ppm_hi, offset_hi, '-')
+            else:
+                plt.plot(ppm, final_res, '-')
             plt.xlim([np.max(ppm),np.min(ppm)])
             plt.xlabel(r'$^{15}$N (ppm)')
             plt.ylabel(r'I/I$_0$')
@@ -294,6 +299,73 @@ class fitGroup(object):
 
 
     def sim_cest(self,params,label):
+        kex = params['kex'].value
+        pb = params['pb'].value
+        deltaO = params['deltaO'].value
+        J = params['J'].value
+        w0 = params['w0'].value
+
+        field = label[0]
+        rfield = str(field).split('.')[0]
+
+        v1 = self.v1[label]
+        v1_probs = self.v1_probs[label]
+        offsets = self.offsets[label]
+        carrier = self.carrier[label]
+
+
+        deltaN1 = (w0 + 0.5*deltaO - carrier)*field # convert to Hz
+        deltaN2 = (w0 - 0.5*deltaO - carrier)*field # convert to Hz
+        cest_fin = np.zeros(len(offsets))
+        state = np.zeros((127),dtype="complex64")
+
+        rate_dic = {}
+        cz = params['r_Cz'+'_'+rfield].value
+        nz = params['r_Nz'+'_'+rfield].value
+        nxy = params['r_Nxy'+'_'+rfield].value
+        rate_dic['Iz'] = cz
+        rate_dic['Rz'] = nz
+        rate_dic['Sz'] = nz
+        rate_dic['RxSx'] = 2.0*nxy
+        rate_dic['RxSy'] = 2.0*nxy
+        rate_dic['RySx'] = 2.0*nxy
+        rate_dic['RySy'] = 2.0*nxy
+        rate_dic['RxSz'] = nxy + nz
+        rate_dic['RySz'] = nxy + nz
+        rate_dic['RzSx'] = nxy + nz
+        rate_dic['RzSy'] = nxy + nz
+        rate_dic['RzSz'] = 2.0*nz
+        rate_dic['IzRxSx'] = cz+2.0*nxy
+        rate_dic['IzRxSy'] = cz+2.0*nxy
+        rate_dic['IzRySx'] = cz+2.0*nxy
+        rate_dic['IzRySy'] = cz+2.0*nxy
+        rate_dic['IzRxSz'] = cz+nxy+nz
+        rate_dic['IzRySz'] = cz+nxy+nz
+        rate_dic['IzRzSx'] = cz+nxy+nz
+        rate_dic['IzRzSy'] = cz+nxy+nz
+        rate_dic['IzRzSz'] = 2.0*nz+cz
+
+        state[0] += 1.0
+        state[63] += 0.5 # start on IzSz ground
+        state[126] += 0.5 # split between ground and excited evenly
+        rate_mat = pop_rel(rel,rate_dic)
+
+        relaxL = L_basic(rate_mat, rate_dic, pb=pb, kex = kex)
+        relaxL = add_J_coup(relaxL, J, J_IR_mat) # add IR J-coupling
+        relaxL = add_J_coup(relaxL, J, J_IS_mat)
+        val, pow = tay_val(relaxL,RS_x_rf, RS_y_rf,v1,self.cest_time,offsets,deltaN1,deltaN2)
+
+        for k,offset in enumerate(offsets):
+            Ltemp = L_addElements_simp(relaxL, deltaR=deltaN1-offset, deltaS=deltaN2-offset, deltaR_ex = deltaN2-offset, deltaS_ex = deltaN1 - offset)
+            CESTp = L_add_rf(Ltemp, RS_x_rf, RS_y_rf, v1, phase = 0.0)
+            state_curr = propagate_fast(state,CESTp,val,pow)
+            #state_curr = propagate(state, CESTp, cest_time)
+            cest_fin[k] = np.sum(np.real(state_curr[:,63] + state_curr[:,126])*v1_probs)
+
+        return cest_fin
+
+
+    def sim_cest_hiRes(self,params,label,offset_hi): # same as normal but get a hi-res output
         kex = params['kex'].value
         pb = params['pb'].value
         deltaO = params['deltaO'].value

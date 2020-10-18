@@ -51,7 +51,7 @@ class fitGroup(object):
         for i,lb in enumerate(self.label):
             self.v1[lb], self.v1_probs[lb] = getB1_vals(self.v1_list[i],self.v1_std_list[i],self.inhom_num)
 
-        self.doFit()
+        self.doFit(hires=True, con_r2=True)
         self.end = time.time()
         print('\nCompleted fit for ', self.name)
         print('time taken: ', self.end-self.start, '\n')
@@ -232,8 +232,8 @@ class fitGroup(object):
                     self.rel[key+'_'+rfield] = self.dRateMat[key]
 
 
-    def doFit(self):
-
+    def doFit(self, hires=False, con_r2=False):
+        # con_r2 = constrain r2
         params_all = Parameters()
         meth = 'leastsq'
         for param in self.glob:
@@ -250,7 +250,14 @@ class fitGroup(object):
         for param in self.fitParams_rel:
             for field in self.fields:
                 rfield = str(field).split('.')[0]
-                params_all[param+'_'+rfield].vary = True
+                if param == 'r_Nxy' and con_r2==True:
+                    if field == np.min(self.fields):
+                        params_all[param+'_'+rfield].vary = True
+                    else:
+                        min_rfield = str(np.min(self.fields)).split('.')[0]
+                        params_all[param+'_'+rfield].expr = param+'_'+min_rfield
+                else:
+                    params_all[param+'_'+rfield].vary = True
 
         print('\nstarting minimisation for ', self.name, '...\n')
 
@@ -268,7 +275,17 @@ class fitGroup(object):
             plt.plot(ppm, self.intens[lb], 'o')
             rfield = str(lb[0]).split('.')[0]
             rB1 = str(lb[1]).split('.')[0]
-            plt.plot(ppm, final_res, '-')
+            if hires:
+                offset_hi = np.linspace(np.min(self.offsets[lb]), np.max(self.offsets[lb]), 50)
+                ppm_hi = offset_hi/lb[0]+self.carrier[lb]
+                final_res_hi = self.sim_cest_hiRes(result.params,lb,offset_hi)
+                plt.plot(ppm_hi, final_res_hi, '-')
+                with open(self.pathname+'/'+self.name+'_'+str(rfield)+'MHz_'+rB1+'Hz_hires.out','w') as outy:
+                    outy.write('# ppm\tExp\tFit\n')
+                    for i,val in enumerate(ppm_hi):
+                        outy.write('%f\t%f\n' %(val,final_res_hi[i]))
+            else:
+                plt.plot(ppm, final_res, '-')
             plt.xlim([np.max(ppm),np.min(ppm)])
             plt.xlabel(r'$^{15}$N (ppm)')
             plt.ylabel(r'I/I$_0$')
@@ -307,6 +324,73 @@ class fitGroup(object):
         v1 = self.v1[label]
         v1_probs = self.v1_probs[label]
         offsets = self.offsets[label]
+        carrier = self.carrier[label]
+
+
+        deltaN1 = (w0 + 0.5*deltaO - carrier)*field # convert to Hz
+        deltaN2 = (w0 - 0.5*deltaO - carrier)*field # convert to Hz
+        cest_fin = np.zeros(len(offsets))
+        state = np.zeros((1+2*rowLen),dtype="complex64")
+
+        rate_dic = {}
+        cz = params['r_Cz'+'_'+rfield].value
+        nz = params['r_Nz'+'_'+rfield].value
+        nxy = params['r_Nxy'+'_'+rfield].value
+        rate_dic['Iz'] = cz
+        rate_dic['Rz'] = nz
+        rate_dic['Sz'] = nz
+        rate_dic['RxSx'] = 2.0*nxy
+        rate_dic['RxSy'] = 2.0*nxy
+        rate_dic['RySx'] = 2.0*nxy
+        rate_dic['RySy'] = 2.0*nxy
+        rate_dic['RxSz'] = nxy + nz
+        rate_dic['RySz'] = nxy + nz
+        rate_dic['RzSx'] = nxy + nz
+        rate_dic['RzSy'] = nxy + nz
+        rate_dic['RzSz'] = 2.0*nz
+        rate_dic['IzRxSx'] = cz+(2.0*nxy)
+        rate_dic['IzRxSy'] = cz+(2.0*nxy)
+        rate_dic['IzRySx'] = cz+(2.0*nxy)
+        rate_dic['IzRySy'] = cz+(2.0*nxy)
+        rate_dic['IzRxSz'] = cz+nxy+nz
+        rate_dic['IzRySz'] = cz+nxy+nz
+        rate_dic['IzRzSx'] = cz+nxy+nz
+        rate_dic['IzRzSy'] = cz+nxy+nz
+        rate_dic['IzRzSz'] = (2.0*nz)+cz
+
+        state[0] += 1.0
+        state[rowLen] += 0.5 # start on IzSz ground
+        state[2*rowLen] += 0.5 # split between ground and excited evenly
+        rate_mat = pop_rel_red(rel,rate_dic,rowLen)
+
+        relaxL = L_basic_red(rate_mat,rate_dic,rowList,rowLen, pb=pb, kex = kex)
+        relaxL = add_J_coup_red(relaxL, J, J_IR_mat,rowLen) # add IR J-coupling
+        relaxL = add_J_coup_red(relaxL, J, J_IS_mat,rowLen)
+        val, pow = tay_val_red(relaxL,rowLen,RS_x_rf, RS_y_rf,v1,self.cest_time,offsets,deltaN1,deltaN2)
+
+        for k,offset in enumerate(offsets):
+            Ltemp = L_addElements_simp_red(relaxL,rowLen, deltaR=deltaN1-offset, deltaS=deltaN2-offset, deltaR_ex = deltaN2-offset, deltaS_ex = deltaN1 - offset)
+            CESTp = L_add_rf_red(Ltemp, rowLen, RS_x_rf, RS_y_rf, v1, phase = 0.0)
+            state_curr = propagate_fast(state,CESTp,val,pow)
+            #state_curr = propagate(state, CESTp, self.cest_time)
+            cest_fin[k] = np.sum(np.real(state_curr[:,rowLen] + state_curr[:,2*rowLen])*v1_probs)
+
+        return cest_fin
+
+
+    def sim_cest_hiRes(self,params,label, offset_hi):
+        kex = params['kex'].value
+        pb = params['pb'].value
+        deltaO = params['deltaO'].value
+        J = params['J'].value
+        w0 = params['w0'].value
+
+        field = label[0]
+        rfield = str(field).split('.')[0]
+
+        v1 = self.v1[label]
+        v1_probs = self.v1_probs[label]
+        offsets = offset_hi
         carrier = self.carrier[label]
 
 

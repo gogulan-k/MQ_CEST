@@ -584,11 +584,14 @@ def tay_val_red(relaxL,rowLen,x_rf, y_rf,b1_vals,timey,offsets,deltaN1, deltaN2)
 
 
 def propagate_fast(init,L,val,pow):
-    return np.dot([taylorProp_fast(L[i,:,:], val, pow) for i in range(L.shape[0])],  init)
+    # return np.dot([taylorProp_fast(L[i,:,:], val, pow) for i in range(L.shape[0])],  init)
+    props = taylorProp_fast(L,val,pow)
+    return np.einsum('...ij,j->...i',props,init)
 
 
 def taylorProp_fast(L,val,pow):
-    x = np.eye(L.shape[0])+val*L + (np.linalg.matrix_power(L,2)*val**2.0)/2.0+(np.linalg.matrix_power(L,3)*val**3.0)/6.0
+    # x = np.eye(L.shape[0])+val*L + (np.linalg.matrix_power(L,2)*val**2.0)/2.0+(np.linalg.matrix_power(L,3)*val**3.0)/6.0
+    x = np.eye(L.shape[1])+val*L + (np.linalg.matrix_power(L,2)*val**2.0)/2.0+(np.linalg.matrix_power(L,3)*val**3.0)/6.0
     xx = np.linalg.matrix_power(x,2**pow)
 
     return xx
