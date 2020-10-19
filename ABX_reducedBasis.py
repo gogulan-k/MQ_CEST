@@ -1,7 +1,19 @@
+#!/usr/bin/python3
+
+# This code is designed for fitting multi-quantum chemical exchange saturation
+# transfer data (MQ-CEST) see Karunanithy et al., J Phys. Chem. Lett., 2020
+# (https://doi.org/10.1021/acs.jpclett.0c01322).
+
+
 # ABX Functions
 # Functions for 3 spin ABX systems
 # GK UCL
 # 29/10/19
+
+# Here we introduce a reduced basis that speeds up matrix calculations
+
+# Updated by GK 19/10/2020:
+# using Frobenius norm rather than L2 norm
 
 import numpy as np
 from scipy import linalg, kron, eye, transpose, sparse, stats
@@ -538,7 +550,8 @@ def tay_val(relaxL,x_rf, y_rf,b1_vals,timey,offsets,deltaN1, deltaN2):
     CESTp = L_add_rf(Ltemp, x_rf, y_rf, np.array([np.max(b1_vals)]), phase = 0.0)
 
     curr_L = CESTp[0,:,:]
-    normy = linalg.norm(curr_L, ord = 2) # get 2 norm
+    # normy = linalg.norm(curr_L, ord = 2) # get 2 norm
+    normy = linalg.norm(curr_L, ord = 'fro') # get 2 norm
     scale = 1./normy
 
     if scale > 1.0:
@@ -566,7 +579,8 @@ def tay_val_red(relaxL,rowLen,x_rf, y_rf,b1_vals,timey,offsets,deltaN1, deltaN2)
     CESTp = L_add_rf_red(Ltemp,rowLen, x_rf, y_rf, np.array([np.max(b1_vals)]), phase = 0.0)
 
     curr_L = CESTp[0,:,:]
-    normy = linalg.norm(curr_L, ord = 2) # get 2 norm
+    # normy = linalg.norm(curr_L, ord = 2) # get 2 norm
+    normy = linalg.norm(curr_L, ord = 'fro') # get 2 norm
     scale = 1./normy
 
     if scale > 1.0:
@@ -601,7 +615,8 @@ def taylorProp(L, time):
     # Use a Taylor expansion to find the matrix exponential - is slightly
     # less expensive. The time is scaled so that the Taylor series expansion is
     # valid. Can only take one Liouvillian at a time
-    normy = linalg.norm(L, ord = 2) # get 2 norm
+    # normy = linalg.norm(L, ord = 2) # get 2 norm
+    normy = linalg.norm(L, ord = 'fro') # Use Frobenius norm
     scale = 1./normy
 
     if scale > 1.0:

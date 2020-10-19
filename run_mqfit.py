@@ -1,3 +1,13 @@
+#!/usr/bin/python3
+
+# This code is designed for fitting multi-quantum chemical exchange saturation
+# transfer data (MQ-CEST) see Karunanithy et al., J Phys. Chem. Lett., 2020
+# (https://doi.org/10.1021/acs.jpclett.0c01322).
+
+# GK UCL
+# 29/10/19
+
+
 from ABX import *
 from lmfit import minimize, Minimizer, Parameters, Parameter, report_fit, fit_report
 import matplotlib.pyplot as plt

@@ -2,10 +2,11 @@ MQ-CEST Fit
 ------------
 ------------
 This code is designed for fitting multi-quantum chemical exchange saturation
-transfer data (MQ-CEST). It is currently designed for the characterisation of
-restricted rotation in the guanidinium groups of arginine residues and can give
-information on the rate of rotation of Nh nuclei and their individual chemical
-shifts.
+transfer data (MQ-CEST) see Karunanithy et al., J Phys. Chem. Lett., 2020
+(https://doi.org/10.1021/acs.jpclett.0c01322).
+It is currently designed for the characterisation of restricted rotation in the
+guanidinium groups of arginine residues and can give information on the rate of
+rotation of Nh nuclei and their individual chemical shifts.
 
 Dependencies
 ------------
@@ -164,4 +165,4 @@ Outputs
 For each dataset file used in the fit an eps figure is created showing the
 experimental and fitted CEST curves. A corresponding text file (.out) is created
 with the values used to make the figure. Finally the fit report from LMFIT is
-given showing the values of the fitted parameters and their errors. 
+given showing the values of the fitted parameters and their errors.

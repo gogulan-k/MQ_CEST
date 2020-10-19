@@ -1,7 +1,14 @@
+#!/usr/bin/python3
+
+# This code is designed for fitting multi-quantum chemical exchange saturation
+# transfer data (MQ-CEST) see Karunanithy et al., J Phys. Chem. Lett., 2020
+# (https://doi.org/10.1021/acs.jpclett.0c01322).
+
 # ABX Functions
 # Functions for 3 spin ABX systems
 # GK UCL
 # 29/10/19
+
 
 import numpy as np
 from scipy import linalg, kron, eye, transpose, sparse, stats
