@@ -123,9 +123,7 @@ def CS_matrix(prod,prodList): # returns a matrix of 1s can be multiplied by I, R
             val_orig = np.real(1.0j*np.dot(val_in,np.dot(L_orig,(prod[prodList[j]].flatten())))) # this deals with evolution
             val_ex = np.real(1.0j*np.dot(val_in,np.dot(L_ex,(prod[prodList[j]].flatten()))))
 
-            # NOTE: THERE'S A FUNNY NORMALISATION THING GOING ON HERE HENCE
-            # VALUES ARE MULTIPLIED BY 2. EVERYTHING SEEMS TO BE BASICALLY
-            # WORKING THOUGH
+            # NOTE NORMALIZATION FACTORS
 
             if int(val_orig) == 2:
                 I_cs[i,j]+=1.0
